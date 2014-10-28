@@ -73,36 +73,21 @@ function amga_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
   return _amga_civix_civicrm_upgrade($op, $queue);
 }
 
-/**
- * Implementation of hook_civicrm_managed
- *
- * Generate a list of entities to create/deactivate/delete when this module
- * is installed, disabled, uninstalled.
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_managed
- */
-function amga_civicrm_managed(&$entities) {
-  _amga_civix_civicrm_managed($entities);
-}
+function getDbConn($params) {
 
-/**
- * Implementation of hook_civicrm_caseTypes
- *
- * Generate a list of case-types
- *
- * Note: This hook only runs in CiviCRM 4.4+.
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_caseTypes
- */
-function amga_civicrm_caseTypes(&$caseTypes) {
-  _amga_civix_civicrm_caseTypes($caseTypes);
-}
+  if (empty($params['db_name'])) {
+    return civicrm_api3_create_error('Please specify the database name from which you want to import members from AMGA legacy to CiviCRM contacts [e.g. db_name=amga]');
+  }
+  $db = $params['db_name'];
+  $user = $params['user'];
+  $password = $params['password'];
+  $server = $params['host'];
+  $con = mysqli_connect($server, $user, $password, $db);  
 
-/**
- * Implementation of hook_civicrm_alterSettingsFolders
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_alterSettingsFolders
- */
-function amga_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
-  _amga_civix_civicrm_alterSettingsFolders($metaDataFolders);
+  if(mysqli_connect_errno()) {    
+    return civicrm_api3_create_error('Cannot connect to server');  
+  } 
+
+  return $con;
+
 }
