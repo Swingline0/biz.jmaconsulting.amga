@@ -48,18 +48,7 @@
  * @return array
  */
 function civicrm_api3_job_create_contact($params) {
-  if (empty($params['db_name'])) {
-    return civicrm_api3_create_error('Please specify the database name from which you want to import members from AMGA legacy to CiviCRM contacts [e.g. db_name=amga]');
-  }
-  $db = $params['db_name'];
-  $user = $params['user'];
-  $password = $params['password'];
-  $server = $params['host'];
-  $con = mysqli_connect($server, $user, $password, $db);  
-
-  if(mysqli_connect_errno()) {    
-    return civicrm_api3_create_error('Cannot connect to server');  
-  } 
+  $con = getDbConn($params);
 
   // Proceed with import
   $result = mysqli_query($con,"SELECT * FROM members LIMIT 0, 5");
@@ -87,24 +76,109 @@ function civicrm_api3_job_create_contact($params) {
     }
     // finished dupe checking
     // create contact
-    // FIXME: need to check if phone number present in CSV before creating array
-    $params['api.Phone.create'] = array(
-      array(
-        'location_type_id' => 1, 
+    if (!empty($params['contact_id'])) {
+      $locParams = array(
+        'contact_id' => $params['contact_id'],
+      );
+      $phone = civicrm_api3('Phone', 'get', $locParams);
+      if (!empty($phone['values'])) {
+        foreach ($phone['values'] as $id => $p) {
+          if ($p['location_type_id'] == 1 && CRM_Utils_Array::value('phone_type_id', $p) != 2) {
+            $homePhoneID = $id;
+          }
+          if ($p['location_type_id'] == 1 && CRM_Utils_Array::value('phone_type_id', $p) == 2) {
+            $mobilePhoneID = $id;
+          }
+          if ($p['location_type_id'] == 2) {
+            $workPhoneID = $id;
+          }
+          if ($p['phone_type_id'] == 3) {
+            $faxID = $id;
+          }
+        }
+      }
+    }
+    $count = 0;
+    $params['api.Phone.create'] = array();
+    if (!empty($row['home_phone'])) {
+      $params['api.Phone.create'][$count] = array(
+        'location_type_id' => 1,
         'phone' => $row['home_phone'],
-      ),
-      array(
+      );
+      if ($homePhoneID) {
+        $params['api.Phone.create'][$count]['id'] = $homePhoneID;
+      }
+      $count++;
+    }
+    if (!empty($row['work_phone'])) {
+      $params['api.Phone.create'][$count] = array(
         'location_type_id' => 2, 
-        'phone' => '123'.$row['work_phone'],
-      ),
-      array(
+        'phone' => $row['work_phone'],
+      );
+      if ($workPhoneID) {
+        $params['api.Phone.create'][$count]['id'] = $workPhoneID;
+      }
+      $count++;
+    }
+    if (!empty($row['mobile_phone'])) {
+      $params['api.Phone.create'][$count] = array(
         'phone_type_id' => 2, 
         'location_type_id' => 1, 
-        'phone' => 'qw'.$row['mobile_phone'],
-      ),
+        'phone' => $row['mobile_phone'],
+      );
+      if ($mobilePhoneID) {
+        $params['api.Phone.create'][$count]['id'] = $mobilePhoneID;
+      }
+      $count++;
+    }
+    if (!empty($row['fax'])) {
+      $params['api.Phone.create'][$count] = array(
+        'phone_type_id' => 3, 
+        'location_type_id' => 1, 
+        'phone' => $row['fax'],
+      );
+      if ($faxID) {
+        $params['api.Phone.create'][$count]['id'] = $faxID;
+      }
+    }
+    // Address
+    $params['api.Address.create'] = array();
+    if (!empty($params['contact_id'])) {
+      $address = civicrm_api3('Address', 'get', $locParams);
+      CRM_Core_Error::debug( '$address', $address );
+      //if (!empty($phone['values'])) /* { */
+      /*   foreach ($phone['values'] as $id => $p) { */
+      /*     if ($p['location_type_id'] == 1 && CRM_Utils_Array::value('phone_type_id', $p) != 2) { */
+      /*       $homePhoneID = $id; */
+      /*     } */
+      /*     if ($p['location_type_id'] == 1 && CRM_Utils_Array::value('phone_type_id', $p) == 2) { */
+      /*       $mobilePhoneID = $id; */
+      /*     } */
+      /*     if ($p['location_type_id'] == 2) { */
+      /*       $workPhoneID = $id; */
+      /*     } */
+      /*     if ($p['phone_type_id'] == 3) { */
+      /*       $faxID = $id; */
+      /*     } */
+      /*   } */
+      /* } */
+    }
+    $country = CRM_Core_PseudoConstant::country();
+    CRM_Core_Error::debug( '$country', $country );
+    $addressparams = array(
+      'street_address' => $row['street_address'],
+      'city' => $row['city'],
+      'postal_code' => $row['postal_code'],
+      'country' => '',
     );
-    // Address, website to follow
-    $result = civicrm_api3('Contact', 'create', $params);
+
+    exit;
+
+
+
+    CRM_Core_Error::debug( '$params', $params );
+    //$contact = civicrm_api3('Contact', 'create', $params);
+    //CRM_Core_Error::debug( '$result', $contact );
   }
   exit;
 }
