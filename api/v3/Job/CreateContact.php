@@ -38,15 +38,6 @@
  * $Id: Contact.php 30879 2010-11-22 15:45:55Z shot $
  *
  */
-
-
-/**
- * Process scheduled voice broadcasts
- *
- * @param array $params
- *
- * @return array
- */
 function civicrm_api3_job_create_contact($params) {
   $con = getDbConn($params);
 
