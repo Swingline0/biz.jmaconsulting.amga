@@ -42,7 +42,7 @@ function civicrm_api3_job_create_contact($params) {
   $con = getDbConn($params);
 
   // Proceed with import
-  $result = mysqli_query($con,"SELECT *, m.id as ext FROM members m LEFT JOIN notes n ON m.id = n.member_id LIMIT 0, 5");
+  $result = mysqli_query($con,"SELECT *, m.id as ext FROM members m LEFT JOIN notes n ON m.id = n.member_id");
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
@@ -161,6 +161,7 @@ function civicrm_api3_job_create_contact($params) {
       'postal_code' => $row['postal_code'],
       'country' => $country[$row['country']],
       'state_province_id' => $state,
+      'location_type_id' => 1,
     );
     if ($addId) {
       $params['api.Address.create']['id'] = $addId;
@@ -182,11 +183,13 @@ function civicrm_api3_job_create_contact($params) {
       $params['employer_id'] = $employer['id'];
     }
     // Notes
-    $params['api.Note.create'] = array(
-      'entity_table' => 'civicrm_contact', 
-      'subject' => $row['topic'],
-      'note' => $row['note'],
-    );
+    if (!empty($row['note'])) {
+      $params['api.Note.create'] = array(
+        'entity_table' => 'civicrm_contact', 
+        'subject' => $row['topic'],
+        'note' => $row['note'],
+      );
+    }
     // Website
     if ($params['contact_id']) {
       $webParams = array(
