@@ -58,9 +58,33 @@ function civicrm_api3_job_create_memberships($params) {
       'period_type' => 'rolling',
       'domain_id' => 1,
     );
-    $memTypes= civicrm_api3('membership_type', 'create', $memParams);
+    civicrm_api3('membership_type', 'create', $memParams);
   }
 
 
   // Now create the memberships
+  $memType = mysqli_query($con, "SELECT m.*, t.membership_type FROM memberships m LEFT JOIN membership_types t ON m.membership_type_id = t.id");
+  while($row = mysqli_fetch_assoc($memType)) {
+    // get the membership types
+    $type = civicrm_api3('membership_type', 'get', array('name' => $row['membership_type']));
+    // get the contact
+    $contact = civicrm_api3('Contact', 'get', array('external_identifier' => $row['member_id']));
+    $member = array(
+      'contact_id' => $contact['id'],
+      'membership_type_id' => $type['id'],
+      'join_date' => $row['membership_join_date'],
+      'end_date' => $row['membership_end_date'],
+    );
+    try{
+      $members = civicrm_api3('Membership', 'create', $member);
+    }
+    catch (CiviCRM_API3_Exception $e) {
+      // handle error here
+      $errorMessage = $e->getMessage();
+      $errorCode = $e->getErrorCode();
+      $errorData = $e->getExtraParams();
+      $errors = array('error' => $errorMessage, 'error_code' => $errorCode, 'error_data' => $errorData);
+      CRM_Core_Error::debug_var( 'ERROR CAUGHT:', $errors );
+    }
+  }
 }

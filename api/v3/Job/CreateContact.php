@@ -42,10 +42,10 @@ function civicrm_api3_job_create_contact($params) {
   $con = getDbConn($params);
 
   // Proceed with import
-  $result = mysqli_query($con,"SELECT * FROM members m LEFT JOIN notes n ON m.id = n.member_id");
-  $params = array('contact_type' => 'Individual');
+  $result = mysqli_query($con,"SELECT *, m.id as ext FROM members m LEFT JOIN notes n ON m.id = n.member_id LIMIT 0, 5");
+  $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
   while($row = mysqli_fetch_assoc($result)) {
-    $params['external_identifier'] = $row['id'];
+    $params = array('contact_type' => 'Individual');
     $params['first_name'] = $row['first_name'];
     $params['last_name'] = $row['last_name'];
     $params['email'] = $row['email'];
@@ -65,6 +65,7 @@ function civicrm_api3_job_create_contact($params) {
         $params['contact_id'] = $dupes[0]; // Still nothing found, then just update the first dupe
       }
     }
+    $params['external_identifier'] = $row['ext'];
     // finished dupe checking
     // create contact
     if (!empty($params['contact_id'])) {
@@ -92,7 +93,9 @@ function civicrm_api3_job_create_contact($params) {
     }
     // Location
     $count = 0;
-    $params['api.Phone.create'] = array();
+    if (!empty($row['home_phone']) || !empty($row['work_phone']) || !empty($row['mobile_phone']) || !empty($row['fax'])) {
+      $params['api.Phone.create'] = array();
+    }
     if (!empty($row['home_phone'])) {
       $params['api.Phone.create'][$count] = array(
         'location_type_id' => 1,
@@ -146,13 +149,18 @@ function civicrm_api3_job_create_contact($params) {
         }
       }
     }
-    $country = CRM_Core_PseudoConstant::country();
+    if ($row['state_province']) {
+      $state = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_StateProvince', $row['state_province'], 'id', 'abbreviation');
+    }
+    if ($row['country'] == 'USA') {
+      $row['country'] = 'United States';
+    }
     $params['api.Address.create'] = array(
       'street_address' => $row['street_address'],
       'city' => $row['city'],
       'postal_code' => $row['postal_code'],
-      'country' => '',// Need to create them first
-      'state_province_id' => '',// Need to create them first
+      'country' => $country[$row['country']],
+      'state_province_id' => $state,
     );
     if ($addId) {
       $params['api.Address.create']['id'] = $addId;
@@ -174,20 +182,11 @@ function civicrm_api3_job_create_contact($params) {
       $params['employer_id'] = $employer['id'];
     }
     // Notes
-    if ($params['contact_id']) {
-      $note = civicrm_api3('Note', 'get', array('entity_id' => $params['contact_id'], 'entity_table' => 'civicrm_contact'));
-      if (!empty($note['values'])) {
-        $noteId = $note['id'];
-      }
-    }
     $params['api.Note.create'] = array(
       'entity_table' => 'civicrm_contact', 
       'subject' => $row['topic'],
       'note' => $row['note'],
     );
-    if ($noteId) {
-      $params['api.Note.create']['id'] = $noteId;
-    }
     // Website
     if ($params['contact_id']) {
       $webParams = array(
@@ -197,22 +196,70 @@ function civicrm_api3_job_create_contact($params) {
       $website = civicrm_api3('Website', 'get', $webParams);
       if (!empty($website['values'])) {
         foreach ($website['values'] as $id => $web) {
-          //TODO depending on how the website will be saved
+          if ($web['website_type_id'] == 1) {
+            $homeId = $id;
+          }
+          if ($web['website_type_id'] == 3) {
+            $fbId = $id;
+          }
+          if ($web['website_type_id'] == 4) {
+            $twId = $id;
+          }
         }
       }
     }
+    $count = 0;
+    $params['api.Website.create'] = array();
+    if (!empty($row['web_address'])) {
+      $params['api.Website.create'][$count] = array(
+        'website_type_id' => 1,
+        'url' => $row['web_address'],
+      );
+      if ($homeId) {
+        $params['api.Website.create'][$count]['id'] = $homeId;
+      }
+      $count++;
+    } 
+    if (!empty($row['facebook'])) {
+      $params['api.Website.create'][$count] = array(
+        'website_type_id' => 3,
+        'url' => $row['facebook'],
+      );
+      if ($fbId) {
+        $params['api.Website.create'][$count]['id'] = $fbId;
+      }
+      $count++;
+    }
+    if (!empty($row['twitter'])) {
+      $params['api.Website.create'][$count] = array(
+        'website_type_id' => 4,
+        'url' => $row['twitter'],
+      );
+      if ($twId) {
+        $params['api.Website.create'][$count]['id'] = $twId;
+      }
+      $count++;
+    }
+   
     // Gender & birthdate
     $gender = CRM_Core_OptionGroup::values('gender', TRUE);
     if ($row['gender']) {
       $params['gender_id'] = $gender[$row['gender']];
     }
-    $params['birth_date'] = $row['birthdate']; 
-    CRM_Core_Error::debug( '$params', $params );
-    exit;
+    $params['birth_date'] = $row['birthdate'];
     
-    $contact = civicrm_api3('Contact', 'create', $params);
-    CRM_Core_Error::debug( '$contact', $contact );
-    exit;
+    try{
+      $contact = civicrm_api3('Contact', 'create', $params);
+    }
+    catch (CiviCRM_API3_Exception $e) {
+      // handle error here
+      $errorMessage = $e->getMessage();
+      $errorCode = $e->getErrorCode();
+      $errorData = $e->getExtraParams();
+      $errors[] = array('error' => $errorMessage, 'error_code' => $errorCode, 'error_data' => $errorData);
+    }
   }
-  exit;
+  if (!empty($errors)) {
+    return civicrm_api3_create_error($errors);
+  }
 }
