@@ -191,13 +191,7 @@ function civicrm_api3_job_create_events($params) {
     }
     // Add an entry in price set entity table
     if (!empty($event['values'])) {
-      $entity = new CRM_Price_DAO_PriceSetEntity();
-      $entity->entity_table = 'civicrm_event';
-      $entity->entity_id = $event['id'];
-      $entity->price_set_id = $price['id'];
-      $entity->fetch();
-      $entity->find(TRUE);
-      $entity->save();
+      CRM_Price_BAO_PriceSet::addTo('civicrm_event', $event['id'], $price['id']);
     }
   }
 }
