@@ -4,6 +4,7 @@ define('FULL_TUITION', 'custom_128');
 define('REG_REQ', 'custom_138');
 define('PROGRAM_STATUS', 'custom_111');
 define('APPROVAL_STATUS', 'custom_129');
+define('PROVIDER', 'custom_130');
 // $Id$
 
 /*
@@ -47,7 +48,7 @@ define('APPROVAL_STATUS', 'custom_129');
 function civicrm_api3_job_create_events($params) {
   $con = getDbConn($params);
   
-  $result = mysqli_query($con,"SELECT *, program_type FROM programs p LEFT JOIN program_types t on p.program_type_id = t.id LIMIT 0, 5");
+  $result = mysqli_query($con,"SELECT *, program_type FROM programs p LEFT JOIN program_types t on p.program_type_id = t.id");
   $eventTypes = CRM_Core_OptionGroup::values('event_type', TRUE, FALSE, FALSE, NULL, 'label', FALSE);
   $mapping = array(
     'health_statement'         => 'health_statement',
@@ -64,31 +65,38 @@ function civicrm_api3_job_create_events($params) {
     'avalanche_level_2'        => 'av_lvl2',
     'avalanche_level_3'        => 'av_lvl3',
   );
+  $status = array(
+    'Cancelled'            => 'cancelled',
+    'Enrolling'            => 'open',
+    'EvaluationsPublished' => 'published',
+    'Full'                 => 'closed',
+  );
   $regReq = '';
+  $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
+  $state = array_flip(array_filter(CRM_Core_PseudoConstant::stateProvinceAbbreviation(FALSE, FALSE)));
   while($row = mysqli_fetch_assoc($result)) {
-    $sql = CRM_Core_DAO::singleValueQuery("SELECT 1 FROM civicrm_event WHERE title = '{$row['program_code']}'");
-    if ($sql) {
-      continue;
-    }
+    $sql = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_event WHERE title = '{$row['program_code']}'");
     // Create the location
-    $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
-    $state = array_flip(CRM_Core_PseudoConstant::stateProvinceAbbreviation(FALSE, FALSE));
     $loc = array(
       'address' => array(
         'city' => $row['location'],
         'country' => $country[$row['country']],
         'state_province_id' => $state[$row['state']],
         'location_type_id' => 1,
-      ), 
-      'email' => array(
-        'email' => $row['contact_person_email'],
-        'location_type_id' => 1,             
-      ),
-      'phone' => array(
-        'phone' => $row['contact_person_phone'],
-        'location_type_id' => 1,
       ),
     );
+    if(!empty($row['contact_person_email'])) {
+      $loc['email'] = array(
+        'email' => $row['contact_person_email'],
+        'location_type_id' => 1,             
+      );
+    }
+    if(!empty($row['contact_person_phone'])) {
+      $loc['phone'] = array(
+        'email' => $row['contact_person_hone'],
+        'location_type_id' => 1,             
+      );
+    }
     $locBlock = civicrm_api3('LocBlock', 'create', $loc);
     // Construct the option values
     foreach ($mapping as $key => $value) {
@@ -105,15 +113,91 @@ function civicrm_api3_job_create_events($params) {
       'loc_block_id' => $locBlock['id'],
       FULL_TUITION => $row['price'], // May be modified to a price set later
       'description' => $row['program_detail'],
-      PROGRAM_STATUS => $row['program_status'],
+      PROGRAM_STATUS => $status[$row['program_status']],
       APPROVAL_STATUS => $row['approval_status'],
       'registration_start_date' => $row['enrollment_start_date'],
+      'is_public' => 1,
+      'is_active' => 1,
+      'is_online_registration' => 1,
     );
+    if ($sql) {
+      $params['id'] = $sql;
+    }
     if ($regReq) {
       $params[REG_REQ] = $regReq . CRM_Core_DAO::VALUE_SEPARATOR;
     }
-    //$event = civicrm_api3('Event', 'create', $params);
+    // Provider
+    if (!empty($row['provider_name_line_1'])) {
+      $provider = civicrm_api3('Contact', 'get', array('organization_name' => $row['provider_name_line_1']));
+      if (!empty($provider['values'])) {
+        reset($provider['values']);
+        $params[PROVIDER] = key($provider['values']); 
+      }
+      else {
+        $provider = civicrm_api3('Contact', 'create', array('organization_name' => $row['provider_name_line_1'], 'contact_type' => 'Organization'));
+        $params[PROVIDER] = $provider['id'];
+      }
+    }
+    // Price Set
+    if (!empty($row['price'])) {
+      $params['is_monetary'] = 1;
+      $n = strtolower(str_replace('-', '_', $row['program_code']));
+      $p = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_set WHERE name = '$n'");
+      $f = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_field WHERE name = '$n'");
+      $v = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_field_value WHERE name = '$n'");
+      $pset = array( 
+        'name' => strtolower(str_replace('-', '_', $row['program_code'])),
+        'title' => $row['program_code'],
+        'is_active' => 1,
+        'extends' => 1,
+        'financial_type_id' => 4,
+        'is_quick_config' => 1,
+        'api.PriceField.create' => array(
+          'price_set_id' => '$value.id',
+          'name' => strtolower(str_replace('-', '_', $row['program_code'])),
+          'label' => $row['program_code'],
+          'html_type' => 'Radio',
+          'format.only_id' => 1,
+        ),
+        'api.PriceFieldValue.create' => array(
+          'price_field_id' => '$value.api.PriceField.create',
+          'amount' => $row['price'],
+          'label' => $row['program_code'],
+          'is_active' => 1,
+          'is_default' => 1,
+        ),
+      );
+      if ($p) {
+        $pset['id'] = $p; 
+      }
+      if ($f) {
+        $pset['api.PriceField.create']['id'] = $f; 
+      }
+      if ($v) {
+        $pset['api.PriceFieldValue.create']['id'] = $v; 
+      }
+      $price = civicrm_api3('PriceSet', 'create', $pset);
+    }
+    
+    try{
+      $event = civicrm_api3('Event', 'create', $params);
+    }
+    catch (CiviCRM_API3_Exception $e) {
+      // handle error here
+      $errorMessage = $e->getMessage();
+      $errorCode = $e->getErrorCode();
+      $errorData = $e->getExtraParams();
+      $errors[] = array('error' => $errorMessage, 'error_code' => $errorCode, 'error_data' => $errorData);
+    }
+    // Add an entry in price set entity table
+    if (!empty($event['values'])) {
+      $entity = new CRM_Price_DAO_PriceSetEntity();
+      $entity->entity_table = 'civicrm_event';
+      $entity->entity_id = $event['id'];
+      $entity->price_set_id = $price['id'];
+      $entity->fetch();
+      $entity->find(TRUE);
+      $entity->save();
+    }
   }
-
-  exit;
 }
