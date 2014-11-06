@@ -165,6 +165,7 @@ function civicrm_api3_job_create_contact($params) {
       'country' => $country[$row['country']],
       'state_province_id' => $state,
       'location_type_id' => 1,
+      'manual_geo_code' => 1,
     );
     if ($addId) {
       $params['api.Address.create']['id'] = $addId;
