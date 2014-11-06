@@ -83,6 +83,7 @@ function civicrm_api3_job_create_events($params) {
         'country' => $country[$row['country']],
         'state_province_id' => $state[$row['state']],
         'location_type_id' => 1,
+        'manual_geo_code' => 1,
       ),
     );
     if(!empty($row['contact_person_email'])) {
@@ -93,7 +94,7 @@ function civicrm_api3_job_create_events($params) {
     }
     if(!empty($row['contact_person_phone'])) {
       $loc['phone'] = array(
-        'email' => $row['contact_person_hone'],
+        'phone' => $row['contact_person_phone'],
         'location_type_id' => 1,             
       );
     }

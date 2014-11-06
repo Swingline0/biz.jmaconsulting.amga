@@ -1,4 +1,6 @@
 <?php
+define('CPR', 'custom_56');
+define('WFR', 'custom_57');
 // $Id$
 
 /*
@@ -42,21 +44,26 @@
 function civicrm_api3_job_create_participants($params) {
   $con = getDbConn($params);
   
-  $result = mysqli_query($con,"SELECT * FROM program_registrations r LEFT JOIN programs p ON r.program_id = p.id 
+  $result = mysqli_query($con,"SELECT r.*, s.status, t.participant_type, p.program_code FROM program_registrations r LEFT JOIN programs p ON r.program_id = p.id 
     LEFT JOIN statuses s ON s.id = r.status_id LEFT JOIN participant_types t ON t.id = r.participant_type_id");
   $roles = CRM_Core_OptionGroup::values('participant_role', TRUE);
   $status = array_flip(CRM_Event_PseudoConstant::participantStatus(NULL, NULL, 'label'));
   while($row = mysqli_fetch_assoc($result)) {
-    $contactID = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $row['member_id'], 'id', 'external_identiifier');
+    $contactID = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $row['member_id'], 'id', 'external_identifier');
+    CRM_Core_Error::debug( '$row', $row );
     $event = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $row['program_code'], 'id', 'title');
     $params = array(
       'status_id' => $status[$row['status']],
       'role_id' => $roles[$row['participant_type']],
       'contact_id' => $contactID,
       'event_id' => $event,
-      'fee_amount' => $row['price'],
+      'fee_amount' => $row['payments_received'],
       'registered_date' => $row['created_at'],
+      WFR => $row['status_wfr'],
     );
+    if (strtolower($row['status_cpr']) == 'yes') {
+      $params[CPR] = 'true';
+    }
     try{
       $participants = civicrm_api3('Participant', 'create', $params);
     }
