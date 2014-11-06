@@ -45,7 +45,7 @@ function civicrm_api3_job_create_contact($params) {
 
   // Proceed with import
   $result = mysqli_query($con,"SELECT m.*, n.*, m.id as ext, p.tshirt_size as tshirt FROM members m LEFT JOIN notes n ON m.id = n.member_id 
-    LEFT JOIN program_registrations p on p.member_id = m.id LIMIT 0, 5");
+    LEFT JOIN program_registrations p on p.member_id = m.id");
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
