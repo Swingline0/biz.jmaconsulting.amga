@@ -1,4 +1,6 @@
 <?php
+define('BIO', 'custom_7');
+define('TSHIRT', 'custom_5');
 // $Id$
 
 /*
@@ -42,7 +44,8 @@ function civicrm_api3_job_create_contact($params) {
   $con = getDbConn($params);
 
   // Proceed with import
-  $result = mysqli_query($con,"SELECT *, m.id as ext FROM members m LEFT JOIN notes n ON m.id = n.member_id");
+  $result = mysqli_query($con,"SELECT m.*, n.*, m.id as ext, p.tshirt_size as tshirt FROM members m LEFT JOIN notes n ON m.id = n.member_id 
+    LEFT JOIN program_registrations p on p.member_id = m.id LIMIT 0, 5");
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
@@ -212,7 +215,9 @@ function civicrm_api3_job_create_contact($params) {
       }
     }
     $count = 0;
-    $params['api.Website.create'] = array();
+    if (!empty($row['web_address']) || !empty($row['facebook']) || !empty($row['twitter'])) {
+      $params['api.Website.create'] = array();
+    }
     if (!empty($row['web_address'])) {
       $params['api.Website.create'][$count] = array(
         'website_type_id' => 1,
@@ -246,10 +251,18 @@ function civicrm_api3_job_create_contact($params) {
    
     // Gender & birthdate
     $gender = CRM_Core_OptionGroup::values('gender', TRUE);
-    if ($row['gender']) {
+    if (!empty($row['gender'])) {
       $params['gender_id'] = $gender[$row['gender']];
     }
-    $params['birth_date'] = $row['birthdate'];
+    if (!empty($row['birthdate'])) {
+      $params['birth_date'] = $row['birthdate'];
+    }
+    if (!empty($row['bio'])) {
+      $params[BIO] = $row['bio'];
+    }
+    if (!empty($row['tshirt'])) {
+      $params[TSHIRT] = $row['tshirt'];
+    }
     
     try{
       $contact = civicrm_api3('Contact', 'create', $params);
