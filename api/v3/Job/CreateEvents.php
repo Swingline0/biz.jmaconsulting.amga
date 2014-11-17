@@ -128,15 +128,11 @@ function civicrm_api3_job_create_events($params) {
       $params[REG_REQ] = $regReq . CRM_Core_DAO::VALUE_SEPARATOR;
     }
     // Provider
-    if (!empty($row['provider_name_line_1'])) {
-      $provider = civicrm_api3('Contact', 'get', array('organization_name' => $row['provider_name_line_1']));
+    if (!empty($row['provider']) && $row['provider'] == 'Provider' && !empty($row['member_id'])) {
+      $provider = civicrm_api3('Contact', 'get', array('external_identifier' => $row['member_id']));
       if (!empty($provider['values'])) {
         reset($provider['values']);
-        $params[PROVIDER] = key($provider['values']); 
-      }
-      else {
-        $provider = civicrm_api3('Contact', 'create', array('organization_name' => $row['provider_name_line_1'], 'contact_type' => 'Organization'));
-        $params[PROVIDER] = $provider['id'];
+        $params[PROVIDER] = key($provider['values']);
       }
     }
     // Price Set
@@ -147,7 +143,7 @@ function civicrm_api3_job_create_events($params) {
       $f = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_field WHERE name = '$n'");
       $v = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_field_value WHERE name = '$n'");
       $pset = array( 
-        'name' => strtolower(str_replace('-', '_', $row['program_code'])),
+        //name' => strtolower(str_replace('-', '_', $row['program_code'])),
         'title' => $row['program_code'],
         'is_active' => 1,
         'extends' => 1,
@@ -155,7 +151,7 @@ function civicrm_api3_job_create_events($params) {
         'is_quick_config' => 1,
         'api.PriceField.create' => array(
           'price_set_id' => '$value.id',
-          'name' => strtolower(str_replace('-', '_', $row['program_code'])),
+          //'name' => strtolower(str_replace('-', '_', $row['program_code'])),
           'label' => $row['program_code'],
           'html_type' => 'Radio',
           'format.only_id' => 1,
@@ -164,6 +160,12 @@ function civicrm_api3_job_create_events($params) {
           'price_field_id' => '$value.api.PriceField.create',
           'amount' => $row['price'],
           'label' => $row['program_code'],
+          'is_active' => 1,
+        ),
+        'api.PriceFieldValue.create' => array(
+          'price_field_id' => '$value.api.PriceField.create',
+          'amount' => '65.00',
+          'label' => ts('Application Fee'),
           'is_active' => 1,
           'is_default' => 1,
         ),
@@ -189,6 +191,7 @@ function civicrm_api3_job_create_events($params) {
       $errorCode = $e->getErrorCode();
       $errorData = $e->getExtraParams();
       $errors[] = array('error' => $errorMessage, 'error_code' => $errorCode, 'error_data' => $errorData);
+      CRM_Core_Error::debug_var( 'ERROR CAUGHT:', $errors );
     }
     // Add an entry in price set entity table
     if (!empty($event['values'])) {

@@ -274,6 +274,7 @@ function civicrm_api3_job_create_contact($params) {
       $errorCode = $e->getErrorCode();
       $errorData = $e->getExtraParams();
       $errors[] = array('error' => $errorMessage, 'error_code' => $errorCode, 'error_data' => $errorData);
+      CRM_Core_Error::debug_var( 'ERROR CAUGHT:', $errors );
     }
   }
   if (!empty($errors)) {
