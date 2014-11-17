@@ -50,7 +50,6 @@ function civicrm_api3_job_create_participants($params) {
   $status = array_flip(CRM_Event_PseudoConstant::participantStatus(NULL, NULL, 'label'));
   while($row = mysqli_fetch_assoc($result)) {
     $contactID = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $row['member_id'], 'id', 'external_identifier');
-    CRM_Core_Error::debug( '$row', $row );
     $event = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $row['program_code'], 'id', 'title');
     $params = array(
       'status_id' => $status[$row['status']],
@@ -61,6 +60,9 @@ function civicrm_api3_job_create_participants($params) {
       'registered_date' => $row['created_at'],
       WFR => $row['status_wfr'],
     );
+    if (empty($params['role_id'])) {
+      $params['role_id'] = $roles['Student'];
+    }
     if (strtolower($row['status_cpr']) == 'yes') {
       $params[CPR] = 'true';
     }
