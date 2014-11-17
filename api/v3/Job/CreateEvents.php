@@ -144,7 +144,7 @@ function civicrm_api3_job_create_events($params) {
       $v = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_field_value WHERE name = '$n'");
       $pset = array( 
         //name' => strtolower(str_replace('-', '_', $row['program_code'])),
-        'title' => ts($row['program_code'],
+        'title' => $row['program_code'],
         'is_active' => 1,
         'extends' => 1,
         'financial_type_id' => 4,
