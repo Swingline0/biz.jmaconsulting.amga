@@ -71,11 +71,11 @@ function civicrm_api3_job_create_events($params) {
     'EvaluationsPublished' => 'published',
     'Full'                 => 'closed',
   );
-  $regReq = '';
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
   $state = array_flip(array_filter(CRM_Core_PseudoConstant::stateProvinceAbbreviation(FALSE, FALSE)));
   while($row = mysqli_fetch_assoc($result)) {
     $sql = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_event WHERE title = '{$row['program_code']}'");
+    $regReq = '';
     // Create the location
     $loc = array(
       'address' => array(
