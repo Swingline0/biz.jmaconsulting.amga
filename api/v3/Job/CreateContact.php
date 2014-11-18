@@ -64,14 +64,12 @@ function civicrm_api3_job_create_contact($params) {
   );
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
-    $cValue = '';
     // Certifications
     $cert = mysqli_query($con, "SELECT t.certification_type FROM certification_types t LEFT JOIN certifications c ON t.id = c.certification_type_id WHERE c.member_id = {$row['ext']}");
+    $certCount = 1;
     while ($certs = mysqli_fetch_assoc($cert)) {
-      $cValue .= CRM_Core_DAO::VALUE_SEPARATOR . $cMapping[$certs['certification_type']];
-    }
-    if (!empty($cValue)) {
-      $params[CERT] = $cValue . CRM_Core_DAO::VALUE_SEPARATOR;
+      $params[CERT . '-' . $certCount] = $cMapping[$certs['certification_type']]; // NOTE: for this to work, comment out lines in api/v3/utils.php, 964 - 966
+      $certCount++;
     }
     $params['first_name'] = $row['first_name'];
     $params['last_name'] = $row['last_name'];
