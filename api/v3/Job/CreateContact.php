@@ -1,6 +1,7 @@
 <?php
 define('BIO', 'custom_7');
 define('TSHIRT', 'custom_5');
+define('CERT', 'custom_131');
 // $Id$
 
 /*
@@ -47,8 +48,31 @@ function civicrm_api3_job_create_contact($params) {
   $result = mysqli_query($con,"SELECT m.*, n.*, m.id as ext, p.tshirt_size as tshirt FROM members m LEFT JOIN notes n ON m.id = n.member_id 
     LEFT JOIN program_registrations p on p.member_id = m.id");
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
+  $cMapping = array(
+    'Certified Alpine Guide' => 'ag',
+    'Certified Climbing Wall Instructor (Lead)' => 'cwi-l',
+    'Certified Climbing Wall Instructor (Top Rope)' => 'cwi-tr',
+    'Certified Rock Guide' => 'rg',
+    'Certified Rock Instructor' => 'ri',
+    'Certified Single Pitch Instructor' => 'spi',
+    'Certified Ski Guide' => 'sg',
+    'IFMGA via AMGA' => 'ifmga-a',
+    'IFMGA via Reciprocal' => 'ifmga-r',
+    'Certified Top Rope Site Manager' => 'ctrsm',
+    'Senior Guide' => 'seg',
+    'Top Rope Site Manager' => 'trsm',
+  );
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
+    $cValue = '';
+    // Certifications
+    $cert = mysqli_query($con, "SELECT t.certification_type FROM certification_types t LEFT JOIN certifications c ON t.id = c.certification_type_id WHERE c.member_id = {$row['ext']}");
+    while ($certs = mysqli_fetch_assoc($cert)) {
+      $cValue .= CRM_Core_DAO::VALUE_SEPARATOR . $cMapping[$certs['certification_type']];
+    }
+    if (!empty($cValue)) {
+      $params[CERT] = $cValue . CRM_Core_DAO::VALUE_SEPARATOR;
+    }
     $params['first_name'] = $row['first_name'];
     $params['last_name'] = $row['last_name'];
     $params['email'] = $row['email'];
