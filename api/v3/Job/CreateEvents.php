@@ -5,6 +5,7 @@ define('REG_REQ', 'custom_138');
 define('PROGRAM_STATUS', 'custom_111');
 define('APPROVAL_STATUS', 'custom_129');
 define('PROVIDER', 'custom_130');
+define('TEMPLATE', 28);
 // $Id$
 
 /*
@@ -108,6 +109,7 @@ function civicrm_api3_job_create_events($params) {
     $params = array(
       'title' => $row['program_code'],
       'event_type_id' => $eventTypes[$row['program_type']],
+      'template_id' => TEMPLATE,
       'max_participants' => $row['capacity'],
       'start_date' => $row['start_date'],
       'end_date' => $row['end_date'],
