@@ -74,6 +74,7 @@ function civicrm_api3_job_create_events($params) {
   );
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
   $state = array_flip(array_filter(CRM_Core_PseudoConstant::stateProvinceAbbreviation(FALSE, FALSE)));
+  $count = 0;
   while($row = mysqli_fetch_assoc($result)) {
     $sql = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_event WHERE title = '{$row['program_code']}'");
     $regReq = '';
@@ -146,7 +147,7 @@ function civicrm_api3_job_create_events($params) {
       $v = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_field_value WHERE name = '$n'");
       $pset = array( 
         //name' => strtolower(str_replace('-', '_', $row['program_code'])),
-        'title' => $row['program_code'],
+        'title' => $row['program_code'] . '-' . $count,
         'is_active' => 1,
         'extends' => 1,
         'financial_type_id' => 4,
@@ -182,6 +183,7 @@ function civicrm_api3_job_create_events($params) {
         $pset['api.PriceFieldValue.create']['id'] = $v; 
       }
       $price = civicrm_api3('PriceSet', 'create', $pset);
+      $count++;
     }
     
     try{
