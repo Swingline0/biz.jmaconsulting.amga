@@ -203,7 +203,8 @@ function civicrm_api3_job_create_contact($params) {
         'contact_type' => 'Organization',
       );
       $dedupeParams = CRM_Dedupe_Finder::formatParams($org, 'Organization');
-      $dupes = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Organization');
+      $dedupeParams['check_permission'] = FALSE;
+      $dupes = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Organization', 'Supervised'); //Adding a supervised rule since that's the way Civi does.
       if (count($dupes) >= 1) {
         $org['contact_id'] = $dupes[0];
       } 
