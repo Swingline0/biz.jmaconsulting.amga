@@ -64,6 +64,14 @@ function civicrm_api3_job_create_contact($params) {
   );
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
+    $params['first_name'] = trim($row['first_name']);
+    $params['last_name'] = trim($row['last_name']);
+    $params['email'] = trim($row['email']);
+    // check for dupes
+    $dedupeParams = CRM_Dedupe_Finder::formatParams($params, 'Individual');
+    $dedupeParams['check_permission'] = FALSE;
+    $dupes = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Individual');
+    $params['debug'] = 1;
     // Certifications
     $cert = mysqli_query($con, "SELECT t.certification_type FROM certification_types t LEFT JOIN certifications c ON t.id = c.certification_type_id WHERE c.member_id = {$row['ext']}");
     $certCount = 1;
@@ -71,12 +79,6 @@ function civicrm_api3_job_create_contact($params) {
       $params[CERT . '-' . $certCount] = $cMapping[$certs['certification_type']]; // NOTE: for this to work, comment out lines in api/v3/utils.php, 964 - 966
       $certCount++;
     }
-    $params['first_name'] = $row['first_name'];
-    $params['last_name'] = $row['last_name'];
-    $params['email'] = $row['email'];
-    // check for dupes
-    $dedupeParams = CRM_Dedupe_Finder::formatParams($params, 'Individual');
-    $dupes = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Individual');
     if (count($dupes) == 1) { // if a single dupe is found
       $params['contact_id'] = $dupes[0];
     } 
@@ -124,7 +126,7 @@ function civicrm_api3_job_create_contact($params) {
     if (!empty($row['home_phone'])) {
       $params['api.Phone.create'][$count] = array(
         'location_type_id' => 1,
-        'phone' => $row['home_phone'],
+        'phone' => substr($row['home_phone'],0,32),
       );
       if ($homePhoneID) {
         $params['api.Phone.create'][$count]['id'] = $homePhoneID;
@@ -134,8 +136,8 @@ function civicrm_api3_job_create_contact($params) {
     if (!empty($row['work_phone'])) {
       $params['api.Phone.create'][$count] = array(
         'location_type_id' => 2, 
-        'phone' => $row['work_phone'],
-        'phone_ext' => $row['work_phone_ext'],
+        'phone' => substr($row['work_phone'],0,32),
+        'phone_ext' => substr($row['work_phone_ext'],0,16),
       );
       if ($workPhoneID) {
         $params['api.Phone.create'][$count]['id'] = $workPhoneID;
@@ -146,7 +148,7 @@ function civicrm_api3_job_create_contact($params) {
       $params['api.Phone.create'][$count] = array(
         'phone_type_id' => 2, 
         'location_type_id' => 1, 
-        'phone' => $row['mobile_phone'],
+        'phone' => substr($row['mobile_phone'],0,32),
       );
       if ($mobilePhoneID) {
         $params['api.Phone.create'][$count]['id'] = $mobilePhoneID;
@@ -157,7 +159,7 @@ function civicrm_api3_job_create_contact($params) {
       $params['api.Phone.create'][$count] = array(
         'phone_type_id' => 3, 
         'location_type_id' => 1, 
-        'phone' => $row['fax'],
+        'phone' => substr($row['fax'],0,32),
       );
       if ($faxID) {
         $params['api.Phone.create'][$count]['id'] = $faxID;
@@ -183,7 +185,7 @@ function civicrm_api3_job_create_contact($params) {
     $params['api.Address.create'] = array(
       'street_address' => $row['street_address'],
       'city' => $row['city'],
-      'postal_code' => $row['postal_code'],
+      'postal_code' => substr($row['postal_code'],0,12),
       'country' => $country[$row['country']],
       'state_province_id' => $state,
       'location_type_id' => 1,
