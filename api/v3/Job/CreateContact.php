@@ -2,6 +2,12 @@
 define('BIO', 'custom_7');
 define('TSHIRT', 'custom_5');
 define('CERT', 'custom_131');
+define('EM_CONTACT_NAME', 'custom_173');
+define('EM_RELATIONSHIP', 'custom_174');
+define('EM_MOBILE', 'custom_175');
+define('EM_DAY', 'custom_176');
+define('EM_EVENING', 'custom_177');
+define('EM_ADDRESS', 'custom_178');
 // $Id$
 
 /*
@@ -78,6 +84,16 @@ function civicrm_api3_job_create_contact($params) {
     while ($certs = mysqli_fetch_assoc($cert)) {
       $params[CERT . '-' . $certCount] = $cMapping[$certs['certification_type']]; // NOTE: for this to work, comment out lines in api/v3/utils.php, 964 - 966
       $certCount++;
+    }
+    // Emergency Contacts
+    $emcon = mysqli_query($con, "SELECT * FROM emergency_contacts WHERE member_id = {$row['ext']} AND contact_name IS NOT NULL");
+    while ($emcons = mysqli_fetch_assoc($emcon)) {
+      $params[EM_CONTACT_NAME] = $emcons['contact_name'];
+      $params[EM_RELATIONSHIP] = $emcons['relationship'];
+      $params[EM_MOBILE] = $emcons['mobile_phone'];
+      $params[EM_DAY] = $emcons['day_phone'];
+      $params[EM_EVENING] = $emcons['evening_phone'];
+      $params[EM_ADDRESS] = $emcons['address'];
     }
     if (count($dupes) == 1) { // if a single dupe is found
       $params['contact_id'] = $dupes[0];
