@@ -116,7 +116,7 @@ function civicrm_api3_job_create_events($params) {
       'end_date' => $row['end_date'],
       'loc_block_id' => $locBlock['id'],
       FULL_TUITION => round($row['price'], 2), // May be modified to a price set later
-      'description' => $row['program_detail'],
+      'summary' => $row['program_detail'],
       PROGRAM_STATUS => $status[$row['program_status']],
       APPROVAL_STATUS => $row['approval_status'],
       'registration_start_date' => $row['enrollment_start_date'],
