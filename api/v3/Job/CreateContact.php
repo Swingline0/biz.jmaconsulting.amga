@@ -2,6 +2,7 @@
 define('BIO', 'custom_7');
 define('TSHIRT', 'custom_5');
 define('CERT', 'custom_131');
+define('CERT_ISSUE_DATE', 'custom_133');
 define('EM_CONTACT_NAME', 'custom_173');
 define('EM_RELATIONSHIP', 'custom_174');
 define('EM_MOBILE', 'custom_175');
@@ -79,10 +80,11 @@ function civicrm_api3_job_create_contact($params) {
     $dupes = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Individual');
     $params['debug'] = 1;
     // Certifications
-    $cert = mysqli_query($con, "SELECT t.certification_type FROM certification_types t LEFT JOIN certifications c ON t.id = c.certification_type_id WHERE c.member_id = {$row['ext']}");
+    $cert = mysqli_query($con, "SELECT t.certification_type, c.date FROM certification_types t LEFT JOIN certifications c ON t.id = c.certification_type_id WHERE c.member_id = {$row['ext']}");
     $certCount = 1;
     while ($certs = mysqli_fetch_assoc($cert)) {
       $params[CERT . '-' . $certCount] = $cMapping[$certs['certification_type']]; // NOTE: for this to work, comment out lines in api/v3/utils.php, 964 - 966
+      $params[CERT_ISSUE_DATE . '-' . $certCount] = $certs['date']; 
       $certCount++;
     }
     // Emergency Contacts
