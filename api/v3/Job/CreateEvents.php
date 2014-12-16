@@ -88,7 +88,7 @@ function civicrm_api3_job_create_events($params) {
         'manual_geo_code' => 1,
       ),
     );
-    if(!empty($row['contact_person_email'])) {
+    if(!empty($row['contact_person_email']) && filter_var($row['contact_person_email'], FILTER_VALIDATE_EMAIL)) {
       $loc['email'] = array(
         'email' => $row['contact_person_email'],
         'location_type_id' => 1,             
