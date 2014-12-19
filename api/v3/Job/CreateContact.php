@@ -9,6 +9,7 @@ define('EM_MOBILE', 'custom_175');
 define('EM_DAY', 'custom_176');
 define('EM_EVENING', 'custom_177');
 define('EM_ADDRESS', 'custom_178');
+define('PROVIDER_CODE', 'custom_182');
 // $Id$
 
 /*
@@ -306,6 +307,9 @@ function civicrm_api3_job_create_contact($params) {
     }
     if (!empty($row['tshirt'])) {
       $params[TSHIRT] = $row['tshirt'];
+    }
+    if (!empty($row['provider_code'])) {
+      $params[PROVIDER_CODE] = $row['provider_code'];
     }
     
     try{
