@@ -69,12 +69,18 @@ function civicrm_api3_job_create_memberships($params) {
     $type = civicrm_api3('membership_type', 'get', array('name' => $row['membership_type']));
     // get the contact
     $contact = civicrm_api3('Contact', 'get', array('external_identifier' => $row['member_id']));
+    if (!CRM_Utils_Array::value('id', $contact)) {
+      continue;
+    }
     $member = array(
       'contact_id' => $contact['id'],
       'membership_type_id' => $type['id'],
       'join_date' => $row['membership_join_date'],
       'end_date' => $row['membership_end_date'],
     );
+    if (isset($row['newsletter_opt_out']) && strtolower($row['newsletter_opt_out']) == 'yes') {
+      CRM_Core_DAO::setFieldValue('CRM_Contact_DAO_Contact', $contact['id'], 'is_opt_out', 1);
+    }
     try{
       $members = civicrm_api3('Membership', 'create', $member);
     }
