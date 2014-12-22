@@ -79,8 +79,8 @@ function getDbConn($params) {
     return civicrm_api3_create_error('Please specify the database name from which you want to import members from AMGA legacy to CiviCRM contacts [e.g. db_name=amga]');
   }
   $db = $params['db_name'];
-  $user = $params['user'];
-  $password = $params['password'];
+  $user = $params['import_user'];
+  $password = $params['import_password'];
   $server = $params['host'];
   $con = mysqli_connect($server, $user, $password, $db);  
 
