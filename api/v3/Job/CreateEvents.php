@@ -6,6 +6,8 @@ define('PROGRAM_STATUS', 'custom_111');
 define('APPROVAL_STATUS', 'custom_129');
 define('PROVIDER', 'custom_130');
 define('TEMPLATE', 28);
+define('LEGACY', 'custom_249');
+
 // $Id$
 
 /*
@@ -119,6 +121,7 @@ function civicrm_api3_job_create_events($params) {
       'summary' => $row['program_detail'],
       PROGRAM_STATUS => $status[$row['program_status']],
       APPROVAL_STATUS => $row['approval_status'],
+      LEGACY => 1,
       'registration_start_date' => $row['enrollment_start_date'],
       'is_public' => 1,
       'is_active' => 1,
@@ -139,7 +142,10 @@ function civicrm_api3_job_create_events($params) {
       }
     }
     // Price Set
-    if (!empty($row['price'])) {
+    if (!empty($row['price'])) {                               
+      $checkexist = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_set WHERE title = '".$row['program_code'].'-'.$count."'");
+      if ($checkexist)
+        continue;
       $params['is_monetary'] = 1;
       $n = strtolower(str_replace('-', '_', $row['program_code']));
       $p = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_price_set WHERE name = '$n'");
@@ -198,7 +204,7 @@ function civicrm_api3_job_create_events($params) {
       CRM_Core_Error::debug_var( 'ERROR CAUGHT:', $errors );
     }
     // Add an entry in price set entity table
-    if (!empty($event['values'])) {
+    if (!empty($event['values']) && !empty($price['id'])) {
       CRM_Price_BAO_PriceSet::addTo('civicrm_event', $event['id'], $price['id']);
     }
   }
