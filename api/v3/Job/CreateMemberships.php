@@ -65,9 +65,6 @@ function civicrm_api3_job_create_memberships($params) {
   // Now create the memberships
   $memType = mysqli_query($con, "SELECT m.*, t.membership_type FROM memberships m LEFT JOIN membership_types t ON m.membership_type_id = t.id WHERE t.membership_type <> 'Unclassified'");
   while($row = mysqli_fetch_assoc($memType)) {
-    // get the membership types
-    $type = civicrm_api3('membership_type', 'get', array('name' => $row['membership_type']));
-    $type = $type['id'];
     // get the contact
     $contact = civicrm_api3('Contact', 'get', array('external_identifier' => $row['member_id']));
     if (!CRM_Utils_Array::value('id', $contact)) {
@@ -98,9 +95,6 @@ function civicrm_api3_job_create_memberships($params) {
           if (!empty($cont['custom_131'])) {
             $flag = TRUE;
           }
-          else {
-            $flag = FALSE;
-          }
         }
         if ($flag) { // Member is enrolled in a program, or has a certification
           $type = 1; // Professional Membership
@@ -121,7 +115,7 @@ function civicrm_api3_job_create_memberships($params) {
           $flag = TRUE;
         }
         else {
-          $type = 2;
+          $type = 2; // Supporter Membership
         }
         // Not enrolled in any program? Check for accreditied business
         if ($flag) {
@@ -132,6 +126,38 @@ function civicrm_api3_job_create_memberships($params) {
           if ($flag) {
             $type = 1; // Professional Membership
           }
+        }
+        break;
+      case 'Certified Single Pitch Instructor':
+      case 'Certified Climbing Wall Instructor':
+      case 'Certified Top Rope Site Manager':
+      case 'IFMGA':
+        $type = 1; // Professional Membership
+        break;
+      case 'Individual Member':
+      case 'Inactive':
+        // Check if member has been enrolled in any program
+        $check = array(
+          'contact_id' => $contact['id'],
+          'is_active' => 1,
+        );
+        $parts = civicrm_api3('Participant', 'get', $check);
+        if ($parts['count'] >= 1) {
+          $flag = TRUE;
+        }
+        // Not enrolled in any program? Check for certifications
+        if (!$flag) {
+          $check['return.custom_131'] = 1;
+          $cont = civicrm_api3('Contact', 'getsingle', $check);
+          if (!empty($cont['custom_131'])) {
+            $flag = TRUE;
+          }
+        }
+        if ($flag) { // Member is enrolled in a program, or has a certification
+          $type = 1; // Professional Membership
+        }
+        else {
+          $type = 2; // Supporter Membership
         }
         break;
       default:
