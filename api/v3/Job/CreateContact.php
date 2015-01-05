@@ -70,6 +70,11 @@ function civicrm_api3_job_create_contact($params) {
     'Senior Guide' => 'seg',
     'Top Rope Site Manager' => 'trsm',
   );
+  $gMapping = array(
+    1 => 1, // Administrators
+    3 => 53,  // Providers
+    4 => 17,  // Instructors
+  );
   while($row = mysqli_fetch_assoc($result)) {
     $params = array('contact_type' => 'Individual');
     $params['first_name'] = trim($row['first_name']);
@@ -322,6 +327,20 @@ function civicrm_api3_job_create_contact($params) {
       $errorData = $e->getExtraParams();
       $errors[] = array('error' => $errorMessage, 'error_code' => $errorCode, 'error_data' => $errorData);
       CRM_Core_Error::debug_var( 'ERROR CAUGHT:', $errors );
+    }
+    if (!empty($contact['values'])) {
+      // Roles - Groups Sync
+      $group = mysqli_query($con, "SELECT role_id FROM permissions WHERE member_id = {$row['ext']}");
+      while ($groups = mysqli_fetch_assoc($group)) {
+        // Add the contacts to multiple groups if necessary
+        if (!array_key_exists($groups['role_id'], $gMapping))
+          continue;
+        $gParams = array(
+          'contact_id' => $contact['id'],
+          'group_id' => $gMapping[$groups['role_id']],
+        );
+        civicrm_api3('group_contact', 'create', $gParams);
+      }
     }
   }
   if (!empty($errors)) {
