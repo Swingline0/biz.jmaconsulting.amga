@@ -5,6 +5,7 @@ define('REG_REQ', 'custom_138');
 define('PROGRAM_STATUS', 'custom_111');
 define('APPROVAL_STATUS', 'custom_129');
 define('PROVIDER', 'custom_130');
+define('PROVIDER_NAME', 'custom_181');
 define('TEMPLATE', 28);
 define('LEGACY', 'custom_294');
 
@@ -132,6 +133,7 @@ function civicrm_api3_job_create_events($params) {
       'summary' => $row['program_detail'],
       PROGRAM_STATUS => $status[$row['program_status']],
       APPROVAL_STATUS => $row['approval_status'],
+      PROVIDER_NAME => $row['provider_name_line_1'],
       LEGACY => 1,
       'registration_start_date' => $row['enrollment_start_date'],
       'is_public' => 1,
@@ -146,10 +148,9 @@ function civicrm_api3_job_create_events($params) {
     }
     // Provider
     if (!empty($row['provider']) && $row['provider'] == 'Provider' && !empty($row['member_id'])) {
-      $provider = civicrm_api3('Contact', 'get', array('external_identifier' => $row['member_id']));
-      if (!empty($provider['values'])) {
-        reset($provider['values']);
-        $params[PROVIDER] = key($provider['values']);
+      $provider = civicrm_api3('Contact', 'getsingle', array('external_identifier' => $row['member_id']));
+      if (!empty($provider['external_identifier'])) {
+        $params[PROVIDER] = $provider['contact_id'];
       }
     }
     // Price Set
