@@ -51,8 +51,18 @@ function civicrm_api3_job_create_participants($params) {
   while($row = mysqli_fetch_assoc($result)) {
     $contactID = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $row['member_id'], 'id', 'external_identifier');
     $event = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $row['program_code'], 'id', 'title');
+    $participantStatus = $status[$row['status']];
+    if ($row['status_id'] == 2) {
+      $participantStatus = 7;
+    }
+    if ($row['status_id'] == 12) {
+      $participantStatus = 35;
+    }
+    if ($row['status_id'] == 103) {
+      $participantStatus = 34;
+    }
     $params = array(
-      'status_id' => $status[$row['status']],
+      'status_id' => $participantStatus,
       'role_id' => $roles[$row['participant_type']],
       'contact_id' => $contactID,
       'event_id' => $event,
