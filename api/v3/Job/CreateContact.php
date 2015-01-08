@@ -3,6 +3,7 @@ define('BIO', 'custom_7');
 define('TSHIRT', 'custom_5');
 define('CERT', 'custom_131');
 define('CERT_ISSUE_DATE', 'custom_133');
+define('CERT_STATUS', 'custom_292');
 define('EM_CONTACT_NAME', 'custom_173');
 define('EM_RELATIONSHIP', 'custom_174');
 define('EM_MOBILE', 'custom_175');
@@ -91,6 +92,7 @@ function civicrm_api3_job_create_contact($params) {
     while ($certs = mysqli_fetch_assoc($cert)) {
       $params[CERT . '-' . $certCount] = $cMapping[$certs['certification_type']]; // NOTE: for this to work, comment out lines in api/v3/utils.php, 964 - 966
       $params[CERT_ISSUE_DATE . '-' . $certCount] = $certs['date']; 
+      $params[CERT_STATUS . '-' . $certCount] = 'valid'; 
       $certCount++;
     }
     // Emergency Contacts
