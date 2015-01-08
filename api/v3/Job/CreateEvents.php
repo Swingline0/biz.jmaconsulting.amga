@@ -6,7 +6,7 @@ define('PROGRAM_STATUS', 'custom_111');
 define('APPROVAL_STATUS', 'custom_129');
 define('PROVIDER', 'custom_130');
 define('TEMPLATE', 28);
-define('LEGACY', 'custom_249');
+define('LEGACY', 'custom_294');
 
 // $Id$
 
@@ -50,7 +50,7 @@ define('LEGACY', 'custom_249');
 
 function civicrm_api3_job_create_events($params) {
   $con = getDbConn($params);
-  
+
   $result = mysqli_query($con,"SELECT *, program_type FROM programs p LEFT JOIN program_types t on p.program_type_id = t.id");
   $eventTypes = CRM_Core_OptionGroup::values('event_type', TRUE, FALSE, FALSE, NULL, 'label', FALSE);
   $mapping = array(
@@ -75,17 +75,28 @@ function civicrm_api3_job_create_events($params) {
     'Full'                 => 'closed',
   );
   $country = array_flip(CRM_Core_PseudoConstant::country(FALSE, FALSE));
-  $state = array_flip(array_filter(CRM_Core_PseudoConstant::stateProvinceAbbreviation(FALSE, FALSE)));
   $count = 0;
   while($row = mysqli_fetch_assoc($result)) {
     $sql = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_event WHERE title = '{$row['program_code']}'");
     $regReq = '';
+    // Ensure countries are mapped correctly
+    if (empty($row['country']) || $row['country'] == 'USA' || $row['country'] == 'NULL') {
+      $row['country'] = 'United States';
+    }
+    // Get the correct State/Province
+    $countryID = $country[$row['country']];
+    if ($row['state']) {
+      $stateProvinceID = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_state_province WHERE country_id = {$countryID} AND abbreviation = '{$row['state']}'");
+    }
+    else {
+      $stateProvinceID = NULL;
+    }
     // Create the location
     $loc = array(
       'address' => array(
         'city' => $row['location'],
-        'country' => $country[$row['country']],
-        'state_province_id' => $state[$row['state']],
+        'country' => $countryID,
+        'state_province_id' => $stateProvinceID,
         'location_type_id' => 1,
         'manual_geo_code' => 1,
       ),
