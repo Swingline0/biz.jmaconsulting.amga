@@ -40,6 +40,7 @@ define('WFR', 'custom_57');
  * $Id: Contact.php 30879 2010-11-22 15:45:55Z shot $
  *
  */
+
 function civicrm_api3_job_create_participants($params) {
   $con = getDbConn($params);
   
