@@ -6,7 +6,7 @@ define('PROGRAM_STATUS', 'custom_111');
 define('APPROVAL_STATUS', 'custom_129');
 define('PROVIDER', 'custom_130');
 define('TEMPLATE', 28);
-define('LEGACY', 'custom_249');
+define('LEGACY', 'custom_294');
 
 // $Id$
 
