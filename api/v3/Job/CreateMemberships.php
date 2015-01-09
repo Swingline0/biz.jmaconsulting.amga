@@ -118,14 +118,14 @@ function civicrm_api3_job_create_memberships($params) {
           $type = 2; // Supporter Membership
         }
         // Not enrolled in any program? Check for accreditied business
+        /* if (!$flag) { */
+        /*   $curr = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contact['id'], 'employer_id'); */
+        /*   if ($curr) { */
+        /*     $flag = TRUE; */
+        /*   } */
+        /* } */
         if ($flag) {
-          $curr = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contact['id'], 'employer_id');
-          if ($curr) {
-            $flag = TRUE;
-          }
-          if ($flag) {
-            $type = 1; // Professional Membership
-          }
+          $type = 1; // Professional Membership
         }
         break;
       case 'Certified Single Pitch Instructor':
